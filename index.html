@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <head>
+	<title>Routelanta</title>
+	 <!-- Include the Leaflet CSS file in your page -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+   integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+   crossorigin=""/>
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+      <style>
+		  	  html,body {
+			  height:100vh;
+			  width:100vw;
+		  }
+            .info.legend.leaflet-control{
+                background: linear-gradient( -45deg, #203D1E, black, #203D1E, black);
+				background-size: 600%;
+				animation: anime 16s linear infinite;
+                color: aliceblue;
+				width: 75px;
+				height: 75px;
+				border: 4px solid #73AD21;
+            }
+            .legend {
+                line-height: 18px;
+                color: #555;
+            }
+            .legend i {
+                width: 18px;
+                height: 18px;
+                float: left;
+                margin-right: 8px;
+            }
+		  	.leaflet-popup-content-wrapper{
+			  Background: #000;
+			  opacity: 0.8;
+		  	}
+		  	.leaflet-popup-content{
+			  color:aliceblue;
+			  opacity: 1;
+		  	}
+		  	.leaflet-popup-tip{
+			  Background: #000;
+			  opacity: 0.8;
+		  	}
+		  	.bar { fill: #154360; }
+		  	.bar:hover {
+			fill: #5DADE2;
+		   	}
+		 	html, body {
+    		height: 100%;
+			}
+		  	.d3-tip {
+      		line-height: 2;
+      		padding: 2px;
+      		background: rgba(0, 0, 0, 0.8);
+      		color: #fff;
+			font-family: sans-serif;
+      		border-radius: 20px;
+    		}
+
+			.leaflet-container.leaflet-touch.leaflet-fade-anim.leaflet-grab.leaflet-touch-drag.leaflet-touch-zoom {
+				border-radius: 25px;
+				border: 4px solid #73AD21;
+
+		
+			}
+
+			#map {
+    			height: 80%;
+				width: 100%;
+    			background: #000;
+			}
+			#filtercontainers {
+				width:100vw;
+				height:8%;
+				marign:auto;
+			}
+
+			#list,#textbox {
+				width: calc(100vw/2.5);
+				float: left;
+				height: 160px;
+				height: 90px;
+				font-size: 35px;
+				color: #E5F8E4;
+				border-radius: 25px;
+				border: 4px solid #73AD21;
+				padding: 2px;
+				background: linear-gradient( -45deg, #203D1E, black, #203D1E, black);
+				background-size: 600%;
+				animation: anime 16s linear infinite;
+				margin-right: 5px;
+				text-align: center;
+			
+				
+			}
+		
+			#option1,#option2,#option3,#option4 {
+				background: black;
+				opacity: 80%;
+				background-size: 600%;
+				animation: anime 16s linear infinite;
+			}
+
+
+			@keyframes anime {
+				 0% {background-position: 0% 50%;}
+				 50% {background-position: 100% 50%;}
+				 100% {background-position: 0% 50%;}
+
+			
+			}
+			#title {
+				font-size: 70px;
+				text-align: center;
+				width: 80%;
+				font-family: sans-serif;
+				float: left;
+				display: inline;
+				padding-bottom: 5px;*/
+			}
+
+        </style>
+  </head>
+
+
+  <body>
+  		<div id = title > <img src="pictures/logo.png" alt="logo" style="height: 1.25em;" /> <strong>Routelanta </strong></div>
+		<div id = "filtercontainers">
+				
+				<select id = "list" onchange="getSelectValue();">
+						<option  disabled selected value = 69>1. Choose Your Run Difficulty</option>
+						<option id = option1 value = 69>All</option>
+						<option id = option2 value = 0>Easy</option>
+						<option id = option3 value = 1>Medium</option>
+						<option id = option4 value = 2>Hard</option>
+					</select>
+					<select id = "textbox">
+							<option  disabled selected value = 12312>2. Click Your Location</option>
+						</select>
+			
+				</div>
+    <!-- Include the leaflet javascript package -->
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+		integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+		crossorigin=""></script>
+   	<script src="d3.min.js"></script>
+	<script type="text/javascript" src="Polyline.encoded.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
+	<script src="d3-tip.min.js"></script>
+	<div id="map" style="width:80%"></div>
+    <div id="graph1"></div>
+	<div id="graph2"></div>
+    <script>
+	
+		function getSelectValue()
+		{
+			window.selectedValue = document.getElementById("list").value;
+            return selectedValue;
+		}
+        var defaultdifficulty = 69;
+        var UserDifficulty = defaultdifficulty
+
+    //CREATES MAIN LEAFLET MAP
+	//TODO: Remove State Routes from leaflet map
+    var mymap = L.map('map',{minZoom:13}).setView([33.769016, -84.384956], 14);
+    mymap.setMaxBounds(mymap.getBounds());
+
+    L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+	}).addTo(mymap);
+
+
+
+	const attribution = '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+
+    function getColor(d) {
+			    return d == "Easy" ? '#3CFF33' :
+			           d == "Medium"  ? '#333CFF' :
+			           d == "Hard"  ? '#FF333C' :
+			           '#17202A';
+					}
+
+    var legend = L.control({position: 'topright'});
+
+    legend.onAdd = function (mymap) {
+
+        var div = L.DomUtil.create('div', 'info legend'),
+        grades = ["Easy","Medium","Hard"]
+        labels = [];
+
+        // loop through our density intervals and generate a label with a colored square for each interval
+        for (var i = 0; i < grades.length; i++) {
+            div.innerHTML +=
+                '<i style="background:' + getColor(grades[i]) + '"></i> ' +
+                grades[i] + '<br>';
+    }
+
+    return div;
+    };
+
+    legend.addTo(mymap);
+	
+
+	//Making a marker with a custom icon
+	var MarkerWidth = 50
+	var MarkerHeight = 60
+
+	var MarkerIcon = L.icon({
+		//TODO: Need to find a good png file and paste it in here
+            riseOnHover: true,
+			iconUrl: 'pictures/Sports-Running-Man-icon.png', 
+			iconSize: [MarkerWidth, MarkerHeight],
+			iconAnchor: [MarkerWidth/2, MarkerHeight/2],
+
+		});
+	const marker = L.marker([0,0], {icon: MarkerIcon }).addTo(mymap);
+
+
+	//getting the data
+	var all_layer = new L.layerGroup();
+	all_layer.addTo(mymap);
+
+    var acts = []
+
+	var dataset = d3.dsv(",","acts_rows.csv", function(d)
+            {
+                //GET DATA
+                acts.push({id:d["Run ID"], distance:parseFloat(d["Distance"]),time:parseFloat(d["Time"]),elev:parseFloat(d["Elevation Gain"]),lat:parseFloat(d["Start Latitude"]),lon:parseFloat(d["Start Longitude"]),encoded:d["Polyline"],
+                	difficulty:parseInt(d["Difficulty"])})
+                return d;
+            }).then(function(data){
+
+			//function to assign color to line based on difficulty
+            function getColor(d) {
+			    return d == 0 ? '#3CFF33' :
+			           d == 1  ? '#333CFF' :
+			           d == 2  ? '#FF333C' :
+			           '#17202A';
+					}
+
+            //MAIN JSON ARRAY
+        	acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates = L.Polyline.fromEncoded(arrayItem.encoded).getLatLngs();
+	        		var dif = arrayItem.difficulty;
+	      			arrayItem.line = L.polyline(
+	          		arrayItem.coordinates,
+	          		{
+		              color: getColor(dif),
+		              weight: 3,
+		              opacity: .65,
+		              lineJoin: 'round'
+	          		}
+				    )
+        	});
+
+        	//D3 Data Init
+        	var bars = []
+
+			// use this to change the size of the default markers
+			L.Icon.Default.prototype.options.iconSize = [20,40];
+
+			var LocationWidth = 30
+			var LocationHeight = 40
+			var LocationIcon = L.icon({
+		//TODO: Need to find a good png file and paste it in here
+            riseOnHover: true,
+			iconUrl: 'location.svg', 
+			iconSize: [LocationWidth, LocationHeight],
+			iconAnchor: [LocationWidth/2, LocationHeight/2],
+
+		});
+
+        	var pied_marker = L.marker([33.784912, -84.374285],{
+				title: 'Piedmont Park',
+				icon: LocationIcon
+			}).addTo(mymap);
+			var pied_pop = L.popup({autoClose: false});
+			pied_marker.bindPopup(pied_pop)
+
+			var pied_layers = new L.layerGroup();
+        	pied_marker.on('click', piedClick);
+
+        	function piedClick() {
+        		//Clear Map
+				pied_layers.addTo(mymap);
+				mymap.removeLayer(centen_layers)
+				mymap.removeLayer(wood_layers)
+				mymap.removeLayer(centr_layers)
+				mymap.removeLayer(astat_layers)
+				mymap.removeLayer(free_layers)
+				mymap.removeLayer(gt_layers)
+				mymap.removeLayer(old4_layers)
+        	}
+
+			function piedRuns() {
+				diff = []
+
+				//Bottom Right, Bottom Left, Top Left, Top Right
+				var latlon1 = [[33.781858, -84.369437],[33.781898, -84.378294],[33.793664, -84.378219],[33.793949, -84.36749]]
+				acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates.forEach(function (cords) {
+	        			if (cords.lat>latlon1[0][0] && cords.lat>latlon1[1][0] && cords.lat<latlon1[2][0] && cords.lat<latlon1[3][0])
+	        			{
+	        				if (cords.lng<latlon1[0][1] && cords.lng>latlon1[1][1] && cords.lng>latlon1[2][1] && cords.lng<latlon1[3][1]) 
+	        				{
+	        				arrayItem.line.addTo(pied_layers);
+	        				}
+	        			}
+	        		});	
+        		});
+
+        		//D3 Data
+        		var e = 108;
+				var m = 26;
+				var h = 69;
+
+
+        		bars.push({location:"Piedmont Park", count:pied_layers.getLayers().length, easy:e,medium:m,hard:h})
+
+
+        		//Popup
+        		var pied_img = '<img src="pictures/piedmont_1.jpg" height="80px" width="80px"/>';
+        		pied_pop.setContent("Piedmont Park <br> " + pied_img)
+        		pied_pop.openPopup()
+
+			}
+
+			var centen_marker = L.marker([33.76042, -84.393544],{
+				title: 'Centennial Olympic <br> Park',
+				icon: LocationIcon
+
+			}).addTo(mymap);
+			var centen_pop = L.popup({autoClose: false});
+			centen_marker.bindPopup(centen_pop)
+
+			var centen_layers = new L.layerGroup();
+        	centen_marker.on('click', centenClick);
+
+        	function centenClick() {
+				//Clear Map
+				centen_layers.addTo(mymap);
+				mymap.removeLayer(pied_layers)
+				mymap.removeLayer(wood_layers)
+				mymap.removeLayer(centr_layers)
+				mymap.removeLayer(astat_layers)
+				mymap.removeLayer(free_layers)
+				mymap.removeLayer(gt_layers)
+				mymap.removeLayer(old4_layers)
+			}
+
+			function centenRuns() {
+
+				//Bottom Right, Bottom Left, Top Left, Top Right
+				var latlon1 = [[33.758314, -84.392107],[33.758096, -84.395144],[33.762346, -84.395646],[33.762473, -84.392173]]
+				acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates.forEach(function (cords) {
+	        			if (cords.lat>latlon1[0][0] && cords.lat>latlon1[1][0] && cords.lat<latlon1[2][0] && cords.lat<latlon1[3][0])
+	        			{
+	        				if (cords.lng<latlon1[0][1] && cords.lng>latlon1[1][1] && cords.lng>latlon1[2][1] && cords.lng<latlon1[3][1]) 
+	        				{
+	        				arrayItem.line.addTo(centen_layers)
+	        				}
+	        			}
+	        		});	
+        		});
+				//D3 Data
+				var e = 41;
+				var m = 14;
+				var h = 31;
+        		bars.push({location:"Centennial Olympic Park", count:centen_layers.getLayers().length,easy:e,medium:m,hard:h})
+
+        		//Popup
+        		var centen_img = '<img src="pictures/centennial.jpg" height="80px" width="80px"/>';
+        		centen_pop.setContent("Centennial Olympic Park <br> " + centen_img)
+        		centen_pop.openPopup()
+			}
+
+			var wood_marker = L.marker([33.755131, -84.388720],{
+				title: 'Woodruff Park',
+				icon: LocationIcon
+
+			}).addTo(mymap);
+			var wood_pop = L.popup({autoClose: false});
+			wood_marker.bindPopup(wood_pop)
+
+
+			var wood_layers = new L.layerGroup();
+        	wood_marker.on('click', woodClick);
+
+        	function woodClick() {
+				//Clear Map
+				wood_layers.addTo(mymap);
+				mymap.removeLayer(centen_layers)
+				mymap.removeLayer(pied_layers)
+				mymap.removeLayer(centr_layers)
+				mymap.removeLayer(astat_layers)
+				mymap.removeLayer(free_layers)
+				mymap.removeLayer(gt_layers)
+				mymap.removeLayer(old4_layers)
+			}
+
+			function woodRuns() {
+
+				//Bottom Right, Bottom Left, Top Left, Top Right
+				var latlon1 = [[33.754312, -84.387602],[33.754414, -84.389732],[33.756651, -84.389009],[33.756515, -84.387492]]
+				acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates.forEach(function (cords) {
+	        			if (cords.lat>latlon1[0][0] && cords.lat>latlon1[1][0] && cords.lat<latlon1[2][0] && cords.lat<latlon1[3][0])
+	        			{
+	        				if (cords.lng<latlon1[0][1] && cords.lng>latlon1[1][1] && cords.lng>latlon1[2][1] && cords.lng<latlon1[3][1]) 
+	        				{
+	        				arrayItem.line.addTo(wood_layers)
+	        				}
+	        			}
+	        		});	
+        		});
+				//D3 Data
+				var e = 3;
+				var m = 1;
+				var h = 5;
+        		bars.push({location:"Woodruff Park", count:wood_layers.getLayers().length,easy:e,medium:m,hard:h})
+
+        		//Popup
+        		var wood_img = '<img src="pictures/woodruff2.jpg" height="80px" width="80px"/>';
+        		wood_pop.setContent("Woodruff Park <br> " + wood_img)
+        		wood_pop.openPopup()
+			}
+
+			var centr_marker = L.marker([33.768751, -84.376038],{
+				title: 'Central Park',
+				icon: LocationIcon
+
+			}).addTo(mymap);
+			var centr_pop = L.popup({autoClose: false});
+			centr_marker.bindPopup(centr_pop)
+
+			var centr_layers = new L.layerGroup();
+        	centr_marker.on('click', centrClick);
+
+        	function centrClick() {
+				//Clear Map
+				centr_layers.addTo(mymap);
+				mymap.removeLayer(centen_layers)
+				mymap.removeLayer(wood_layers)
+				mymap.removeLayer(pied_layers)
+				mymap.removeLayer(astat_layers)
+				mymap.removeLayer(free_layers)
+				mymap.removeLayer(gt_layers)
+				mymap.removeLayer(old4_layers)
+			}
+
+			function centrRuns() {
+
+				//Bottom Right, Bottom Left, Top Left, Top Right
+				var latlon1 = [[33.767076, -84.374793],[33.767271, -84.377819],[33.770134, -84.377802],[33.770023, -84.374692]]
+				acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates.forEach(function (cords) {
+	        			if (cords.lat>latlon1[0][0] && cords.lat>latlon1[1][0] && cords.lat<latlon1[2][0] && cords.lat<latlon1[3][0])
+	        			{
+	        				if (cords.lng<latlon1[0][1] && cords.lng>latlon1[1][1] && cords.lng>latlon1[2][1] && cords.lng<latlon1[3][1]) 
+	        				{
+	        				arrayItem.line.addTo(centr_layers)
+	        				}
+	        			}
+	        		});	
+        		});
+				//D3 Data
+				var e = 2;
+				var m = 0;
+				var h = 2;
+        		bars.push({location:"Central Park", count:centr_layers.getLayers().length,easy:e,medium:m,hard:h})
+
+        		//Popup
+        		var centr_img = '<img src="pictures/central.jpg" height="80px" width="80px"/>';
+        		centr_pop.setContent("Central Park <br> " + centr_img)
+        		centr_pop.openPopup()
+			}
+
+			var astat_marker = L.marker([33.791424, -84.399011],{
+				title: 'Atlantic Station',
+				icon: LocationIcon
+
+			}).addTo(mymap);
+			var astat_pop = L.popup({autoClose: false});
+			astat_marker.bindPopup(astat_pop)
+
+			var astat_layers = new L.layerGroup();
+        	astat_marker.on('click', astatClick);
+
+        	function astatClick() {
+				//Clear Map
+				astat_layers.addTo(mymap);
+				mymap.removeLayer(centen_layers)
+				mymap.removeLayer(wood_layers)
+				mymap.removeLayer(centr_layers)
+				mymap.removeLayer(pied_layers)
+				mymap.removeLayer(free_layers)
+				mymap.removeLayer(gt_layers)
+				mymap.removeLayer(old4_layers)
+			}
+
+			function astatRuns() {
+			
+				//Bottom Right, Bottom Left, Top Left, Top Right
+				var latlon1 = [[33.791005, -84.393088],[33.790791, -84.400029],[33.794795, -84.400008],[33.794278, -84.393002]]
+				acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates.forEach(function (cords) {
+	        			if (cords.lat>latlon1[0][0] && cords.lat>latlon1[1][0] && cords.lat<latlon1[2][0] && cords.lat<latlon1[3][0])
+	        			{
+	        				if (cords.lng<latlon1[0][1] && cords.lng>latlon1[1][1] && cords.lng>latlon1[2][1] && cords.lng<latlon1[3][1]) 
+	        				{
+	        				arrayItem.line.addTo(astat_layers)
+	        				}
+	        			}
+	        		});	
+        		});
+				//D3 Data
+				var e = 9;
+				var m = 3;
+				var h = 11;
+        		bars.push({location:"Atlantic Station", count:astat_layers.getLayers().length,easy:e,medium:m,hard:h})
+
+        		//Popup
+        		var astat_img = '<img src="pictures/atlantic.jpg" height="80px" width="80px"/>';
+        		astat_pop.setContent("Atlantic Station <br> " + astat_img)
+        		astat_pop.openPopup()
+			}
+
+			var free_marker = L.marker([33.764466, -84.355901],{
+				title: 'Freedom Park',
+				icon: LocationIcon
+
+			}).addTo(mymap);
+			var free_pop = L.popup({autoClose: false});
+			free_marker.bindPopup(free_pop)
+
+			var free_layers = new L.layerGroup();
+        	free_marker.on('click', freeClick);
+
+        	function freeClick() {
+				//Clear Map
+				free_layers.addTo(mymap);
+				mymap.removeLayer(centen_layers)
+				mymap.removeLayer(wood_layers)
+				mymap.removeLayer(centr_layers)
+				mymap.removeLayer(astat_layers)
+				mymap.removeLayer(pied_layers)
+				mymap.removeLayer(gt_layers)
+				mymap.removeLayer(old4_layers)
+			}
+
+			function freeRuns() {
+
+				//Bottom Right, Bottom Left, Top Left, Top Right
+				var latlon1 = [[33.759974, -84.349978],[33.760087, -84.358785],[33.773547, -84.359759],[33.773628, -84.348790]]
+				acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates.forEach(function (cords) {
+	        			if (cords.lat>latlon1[0][0] && cords.lat>latlon1[1][0] && cords.lat<latlon1[2][0] && cords.lat<latlon1[3][0])
+	        			{
+	        				if (cords.lng<latlon1[0][1] && cords.lng>latlon1[1][1] && cords.lng>latlon1[2][1] && cords.lng<latlon1[3][1]) 
+	        				{
+	        				arrayItem.line.addTo(free_layers)
+	        				}
+	        			}
+	        		});	
+        		});
+				//D3 Data
+				var e = 21;
+				var m = 5;
+				var h = 19;
+        		bars.push({location:"Freedom Park", count:free_layers.getLayers().length,easy:e,medium:m,hard:h})
+
+        		//Popup
+        		var free_img = '<img src="pictures/freedom.jpg" height="80px" width="80px"/>';
+        		free_pop.setContent("Freedom Park <br> " + free_img)
+        		free_pop.openPopup()
+			}
+
+			var gt_marker = L.marker([33.772355, -84.395026],{
+				title: 'Georgia Tech',
+				icon: LocationIcon
+
+			}).addTo(mymap);
+			var gt_pop = L.popup({autoClose: false});
+			gt_marker.bindPopup(gt_pop)
+
+			var gt_layers = new L.layerGroup();
+        	gt_marker.on('click', gtClick);
+
+        	function gtClick() {
+				//Clear Map
+				gt_layers.addTo(mymap);
+				mymap.removeLayer(centen_layers)
+				mymap.removeLayer(wood_layers)
+				mymap.removeLayer(centr_layers)
+				mymap.removeLayer(astat_layers)
+				mymap.removeLayer(free_layers)
+				mymap.removeLayer(pied_layers)
+				mymap.removeLayer(old4_layers)
+			}
+
+			function gtRuns() {
+
+				//Bottom Right, Bottom Left, Top Left, Top Right
+				var latlon1 = [[33.770623, -84.391105],[33.770753, -84.396416],[33.774793, -84.396279],[33.774728, -84.391203]]
+				acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates.forEach(function (cords) {
+	        			if (cords.lat>latlon1[0][0] && cords.lat>latlon1[1][0] && cords.lat<latlon1[2][0] && cords.lat<latlon1[3][0])
+	        			{
+	        				if (cords.lng<latlon1[0][1] && cords.lng>latlon1[1][1] && cords.lng>latlon1[2][1] && cords.lng<latlon1[3][1]) 
+	        				{
+	        				arrayItem.line.addTo(gt_layers)
+	        				}
+	        			}
+	        		});	
+        		});
+				//D3 Data
+				var e = 120;
+				var m = 32;
+				var h = 89;
+        		bars.push({location:"Georgia Tech", count:gt_layers.getLayers().length,easy:e,medium:m,hard:h})
+
+        		//Popup
+        		var gt_img = '<img src="pictures/gt.jpg" height="80px" width="80px"/>';
+        		gt_pop.setContent("Georgia Tech <br> " + gt_img)
+        		gt_pop.openPopup()
+			}
+
+			var old4_marker = L.marker([33.770712, -84.365266],{
+				title: 'Old Fourth Ward',
+				icon: LocationIcon,
+			}).addTo(mymap);
+			var old4_pop = L.popup({autoClose: false});
+			old4_marker.bindPopup(old4_pop)
+
+
+			var old4_layers = new L.layerGroup();
+        	old4_marker.on('click', old4Click);
+
+        	function old4Click() {
+				//Clear Map
+				old4_layers.addTo(mymap);
+				mymap.removeLayer(centen_layers)
+				mymap.removeLayer(wood_layers)
+				mymap.removeLayer(centr_layers)
+				mymap.removeLayer(astat_layers)
+				mymap.removeLayer(free_layers)
+				mymap.removeLayer(gt_layers)
+				mymap.removeLayer(pied_layers)
+			}
+
+			function old4Runs() {
+
+				//Bottom Right, Bottom Left, Top Left, Top Right
+				var latlon1 = [[33.765081, -84.364268],[33.764913, -84.366041],[33.770977, -84.366558],[33.770959, -84.364448]]
+				acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates.forEach(function (cords) {
+	        			if (cords.lat>latlon1[0][0] && cords.lat>latlon1[1][0] && cords.lat<latlon1[2][0] && cords.lat<latlon1[3][0])
+	        			{
+	        				if (cords.lng<latlon1[0][1] && cords.lng>latlon1[1][1] && cords.lng>latlon1[2][1] && cords.lng<latlon1[3][1]) 
+	        				{
+	        				arrayItem.line.addTo(old4_layers)
+	        				}
+	        			}
+	        		});	
+        		});
+				//D3 Data
+				var e = 2;
+				var m = 0;
+				var h = 3;
+        		bars.push({location:"Old Fourth Ward Park", count:old4_layers.getLayers().length,easy:e,medium:m,hard:h})
+
+        		//Popup
+        		var old4_img = '<img src="pictures/o4w.jpg" height="80px" width="80px"/>';
+        		old4_pop.setContent("Old Fourth Ward Park <br> " + old4_img)
+        		old4_pop.openPopup()
+			}
+
+            //Create a popup variable we can change    
+            var popup = L.popup({autoClose: false});    
+            //define what happens on a click
+			
+            mymap.on('click', onMapClick);
+
+			function onMapClick(e) {
+		        var UserDifficulty = getSelectValue();
+                
+
+				//move the postion of the marker icon based on click
+				marker.setLatLng((e.latlng));
+                //set the popup to click location and add it to the map
+                // popup.setLatLng(e.latlng).setContent("You clicked the map at " + e.latlng.toString()).openOn(mymap);
+				//get a count of total identified routes
+				var count = 0;
+				//remove all current lines
+				acts.forEach(function (arrayItem) {
+					all_layer.removeLayer(arrayItem.line)
+				});
+				mymap.removeLayer(pied_layers)
+				mymap.removeLayer(centen_layers)
+				mymap.removeLayer(wood_layers)
+				mymap.removeLayer(centr_layers)
+				mymap.removeLayer(astat_layers)
+				mymap.removeLayer(free_layers)
+				mymap.removeLayer(gt_layers)
+				mymap.removeLayer(old4_layers)
+
+                //go through every arrayitem and determine wheter or not to add it to the map
+
+				acts.forEach(function (arrayItem) {
+	        		arrayItem.coordinates.forEach(function (cords) {
+	        			dist = cords.distanceTo(e.latlng)
+	        			if ((dist < 200 && arrayItem.difficulty == UserDifficulty) || (dist <200 && UserDifficulty == defaultdifficulty)) {
+	        				arrayItem.line.addTo(all_layer);
+	        			}
+	        		});	
+        		});
+			}
+
+			//RUN TOOLTIP
+			acts.forEach(function (arrayItem){
+				var diff = ""
+				if (arrayItem.difficulty == 0) {
+					diff = "Easy"
+				} else if (arrayItem.difficulty == 1) {
+					diff = "Medium"
+				} else {
+					diff = "Hard"
+				}
+
+				var dist2 = arrayItem.distance;
+				var dist = dist2.toFixed(2)
+				var elev = arrayItem.elev
+				arrayItem.line.on('mouseover',function(e) {
+					arrayItem.line.setStyle({opacity : 1, weight:5});
+					var pop = L.popup()
+					.setLatLng(e.latlng)
+					.setContent("<b>" + diff + " Run</b><br>Run Distance is: " + dist + " miles <br> Elevation Gain: " + elev + " feet")
+					.openOn(mymap);
+				})
+				arrayItem.line.on('mouseout',function(e) {
+					arrayItem.line.setStyle({
+						opacity : 0.65,
+						weight: 3
+					});
+				})
+
+			});
+
+			//Initialize Markers + D3 Data
+			centrRuns()
+			old4Runs()
+			astatRuns()
+			gtRuns()
+			piedRuns()
+			centenRuns()
+			freeRuns()
+			woodRuns()
+
+			//D3 CODE GOES HERE
+
+			var margin = {top: 60, right: 20, bottom: 30, left: 70},
+		    width = 960 - margin.left - margin.right,
+		    height = 500 - margin.top - margin.bottom;
+		    var x = d3.scaleBand()
+          		.range([0, width])
+          		.padding(0.1);
+			var y = d3.scaleLinear()
+          		.range([height, 0]);
+          	var svg = d3.select("body").append("svg")
+    			.attr("width", width + margin.left + margin.right)
+    			.attr("height", height + margin.top + margin.bottom)
+  			.append("g")
+    			.attr("transform", 
+          			"translate(" + margin.left + "," + margin.top + ")");
+    		x.domain(bars.map(function(d) { return d.location; }));
+  			y.domain([0, d3.max(bars, function(d) { return d.count; })]);
+
+  			svg.append("text")
+		        .attr("x", (width / 2))             
+		        .attr("y", 0 - (margin.top / 2))
+		        .attr("text-anchor", "middle")  
+		        .style("font-size", "20px") 
+		        .style("font-family","sans-serif")
+		        .text("Number of Past Runs (for each POI)");
+
+		    svg.append("text")
+		      .attr("transform", "rotate(-90)")
+		      .attr("y", 0 - margin.left)
+		      .attr("x",0 - (height / 2))
+		      .attr("dy", "1em")
+		      .style("text-anchor", "middle")
+		      .style("font-family","sans-serif")
+		      .text("Number of Runs");
+
+  			svg.append("g")
+      			.attr("transform", "translate(0," + height + ")")
+      			.call(d3.axisBottom(x));
+
+  			svg.append("g")
+      			.call(d3.axisLeft(y));
+
+				  var tooltip = d3.select("body").append("div").attr("class", "d3-tip");
+
+svg.selectAll(".bar")
+	.data(bars)
+  .enter().append("rect")
+	.attr("class", "bar")
+	.attr("x", function(d) { return x(d.location); })
+	.attr("width", x.bandwidth())
+	.attr("y", function(d) { return y(d.count); })
+	.attr("height", function(d) { return height - y(d.count);})
+	.on("mousemove", function(d){
+	  tooltip
+		.attr("y", height-400)
+		.style("left", d3.event.pageX - 50 + "px")
+		.style("top", d3.event.pageY + 50 + "px")
+		.style("display", "inline-block")
+		.html("Easy Runs: " + (d.easy) +"<br> Medium Runs: " + (d.medium) + "<br> Hard Runs: " + (d.hard));
+	  })
+	.on("mouseout", function(d){ tooltip.style("display", "none");});
+
+			})
+
+    </script>
+    <!-- <div>Icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div> -->
+  
+  </body>
+</html>
